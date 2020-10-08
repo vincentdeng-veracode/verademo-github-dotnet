@@ -1,89 +1,75 @@
 ﻿using System;
-using System.Text;
-using System.Security.Cryptography;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http; 
 using dotnet.Models;
-using com.veracode.apiwrapper;
+
 
 namespace dotnet.Controllers
 {
     public class HomeController : Controller
     {
 
-        private const string id = "";
-        private const string key = "";
+        protected readonly log4net.ILog logger;
+        private const string COOKIE_NAME = "UserDetails";
 
-        static string GetMd5Hash(MD5 md5Hash, string input)
+        protected bool IsUserLoggedIn()
         {
-
-            // Convert the input string to a byte array and compute the hash.
-            byte[] data = md5Hash.ComputeHash(Encoding.UTF8.GetBytes(input));
-
-            // Create a new Stringbuilder to collect the bytes
-            // and create a string.
-            StringBuilder sBuilder = new StringBuilder();
-
-            // Loop through each byte of the hashed data 
-            // and format each one as a hexadecimal string.
-            for (int i = 0; i < data.Length; i++)
-            {
-                sBuilder.Append(data[i].ToString("x2"));
-            }
-
-            // Return the hexadecimal string.
-            return sBuilder.ToString();
+            return string.IsNullOrEmpty(HttpContext.Session.GetString("username")) == false;
         }
 
-        static bool VerifyMd5Hash(MD5 md5Hash, string input, string hash)
+        public IActionResult GetLogin(string ReturnUrl = "")
         {
-            // Hash the input.
-            string hashOfInput = GetMd5Hash(md5Hash, input);
+            logger.Info("Login page visited: " + ReturnUrl);
 
-            // Create a StringComparer an compare the hashes.
-            StringComparer comparer = StringComparer.OrdinalIgnoreCase;
+            var userDetailsCookie = Request.Cookies[COOKIE_NAME];
 
-            if (0 == comparer.Compare(hashOfInput, hash))
+            if (userDetailsCookie == null || userDetailsCookie.Length == 0)
             {
-                return true;
+                logger.Info("No user cookie");
+                HttpContext.Session.SetString("username", "");
+
+                ViewBag.ReturnUrl = ReturnUrl;
+                return View();
             }
-            else
+
+            logger.Info("User details were remembered");
+            var unencodedUserDetails = Convert.FromBase64String(userDetailsCookie);
+
+            CustomSerializeModel deserializedUser;
+
+            using (MemoryStream memoryStream = new MemoryStream(unencodedUserDetails))
             {
-                return false;
+                var binaryFormatter = new BinaryFormatter();
+
+                // set memory stream position to starting point
+                memoryStream.Position = 0;
+
+                // Deserializes a stream into an object graph and return as a object.
+                /* START BAD CODE */
+                deserializedUser = binaryFormatter.Deserialize(memoryStream) as CustomSerializeModel;
+                /* END BAD CODE */
+                logger.Info("User details were retrieved for user: " + deserializedUser.UserName);
             }
+
+            HttpContext.Session.SetString("username", deserializedUser.UserName);
+
+            //if (Url.IsLocalUrl(ReturnUrl))  
+            if (string.IsNullOrEmpty(ReturnUrl))
+            {
+                return RedirectToAction("Feed", "Blab");
+            }
+
+            /* START BAD CODE */
+            return Redirect(ReturnUrl);
+            /* END BAD CODE */
         }
+     
 
         public IActionResult Index()
         {
-            UploadAPIWrapper wrapper = new UploadAPIWrapper();
-            wrapper.SetUpApiCredentials(id, key);
-            string applist = wrapper.GetAppList();
-            Console.WriteLine(applist);
-
-            var a = wrapper.GetAppList();
-            Console.WriteLine(a);
-
-            string source = "Hello World!";
-            using (MD5 md5Hash = MD5.Create())
-            {
-                string hash = GetMd5Hash(md5Hash, source);
-
-                Console.WriteLine("The MD5 hash of " + source + " is: " + hash + ".");
-                Console.WriteLine("Verifying the hash...");
-
-                if (VerifyMd5Hash(md5Hash, source, hash))
-                {
-                    Console.WriteLine("The hashes are the same.");
-                }
-                else
-                {
-                    Console.WriteLine("The hashes are not same.");
-                }
-            }
-
             return View();
         }
 
