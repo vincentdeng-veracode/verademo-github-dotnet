@@ -11,8 +11,6 @@ namespace dotnet.Controllers
 {
     public class HomeController : Controller
     {
-
-        protected readonly log4net.ILog logger;
         private const string COOKIE_NAME = "UserDetails";
 
         protected bool IsUserLoggedIn()
@@ -20,47 +18,42 @@ namespace dotnet.Controllers
             return string.IsNullOrEmpty(HttpContext.Session.GetString("username")) == false;
         }
 
-        public IActionResult GetLogin(string ReturnUrl = "")
+        public IActionResult Login(string ReturnUrl = "")
         {
-            logger.Info("Login page visited: " + ReturnUrl);
+            //var userDetailsCookie = Request.Cookies[COOKIE_NAME];
 
-            var userDetailsCookie = Request.Cookies[COOKIE_NAME];
+            // if (userDetailsCookie == null || userDetailsCookie.Length == 0)
+            // {
+            //     HttpContext.Session.SetString("username", "");
 
-            if (userDetailsCookie == null || userDetailsCookie.Length == 0)
-            {
-                logger.Info("No user cookie");
-                HttpContext.Session.SetString("username", "");
+            //     ViewBag.ReturnUrl = ReturnUrl;
+            //     return View();
+            // }
 
-                ViewBag.ReturnUrl = ReturnUrl;
-                return View();
-            }
+            // var unencodedUserDetails = Convert.FromBase64String(userDetailsCookie);
 
-            logger.Info("User details were remembered");
-            var unencodedUserDetails = Convert.FromBase64String(userDetailsCookie);
+            // CustomSerializeModel deserializedUser;
 
-            CustomSerializeModel deserializedUser;
+            // using (MemoryStream memoryStream = new MemoryStream(unencodedUserDetails))
+            // {
+            //     var binaryFormatter = new BinaryFormatter();
 
-            using (MemoryStream memoryStream = new MemoryStream(unencodedUserDetails))
-            {
-                var binaryFormatter = new BinaryFormatter();
+            //     // set memory stream position to starting point
+            //     memoryStream.Position = 0;
 
-                // set memory stream position to starting point
-                memoryStream.Position = 0;
+            //     // Deserializes a stream into an object graph and return as a object.
+            //     /* START BAD CODE */
+            //     deserializedUser = binaryFormatter.Deserialize(memoryStream) as CustomSerializeModel;
+            //     /* END BAD CODE */
+            // }
 
-                // Deserializes a stream into an object graph and return as a object.
-                /* START BAD CODE */
-                deserializedUser = binaryFormatter.Deserialize(memoryStream) as CustomSerializeModel;
-                /* END BAD CODE */
-                logger.Info("User details were retrieved for user: " + deserializedUser.UserName);
-            }
-
-            HttpContext.Session.SetString("username", deserializedUser.UserName);
+            // HttpContext.Session.SetString("username", deserializedUser.UserName);
 
             //if (Url.IsLocalUrl(ReturnUrl))  
-            if (string.IsNullOrEmpty(ReturnUrl))
-            {
-                return RedirectToAction("Feed", "Blab");
-            }
+            // if (string.IsNullOrEmpty(ReturnUrl))
+            // {
+            //     return RedirectToAction("Index");
+            // }
 
             /* START BAD CODE */
             return Redirect(ReturnUrl);
